@@ -1,0 +1,5 @@
+secondary_types:
+  - 'Supermarket'
+  - 'Hospital'
+
+epsg: 2285

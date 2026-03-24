@@ -1,0 +1,12 @@
+Property Name: property_name
+Property Type: property_type
+Secondary Type: secondary_type
+Anchor Tenants: anchor_tenants
+RBA: sqft
+Property Address: property_address
+City: city
+State: state
+Zip Code: zip_code
+County Name: county
+Latitude: latitude
+Longitude: longitude
