@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import geopandas as gpd
@@ -34,13 +35,29 @@ def rename_and_trim(df: pd.DataFrame, renames: dict[str, str]) -> pd.DataFrame:
     return df[[c for c in keep if c in df.columns]]
 
 
+def normalize_text_columns(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """Create normalized copies of specified columns with a _norm suffix."""
+    for col in columns:
+        if col in df.columns:
+            df[col + "_norm"] = df[col].str.lower().str.replace(r"[^a-z0-9]", "", regex=True)
+    return df
+
+
 def fix_secondary_types(df: pd.DataFrame, fixes: list[dict]) -> pd.DataFrame:
     """Apply secondary-type overrides based on key-field lookups."""
     for rule in fixes:
-        for key_field, mappings in rule.items():
+        for key_fields, mappings in rule.items():
+            key_fields = [k.strip() for k in key_fields.split(",")]
             for mapping in mappings:
                 for value, new_type in mapping.items():
-                    mask = df[key_field].str.contains(value, case=False, na=False)
+                    normalized_value = re.sub(r"[^a-z0-9]", "", value.lower())
+                    mask = pd.Series(False, index=df.index)
+                    for col in key_fields:
+                        norm_col = col + "_norm"
+                        if norm_col in df.columns:
+                            mask |= df[norm_col].str.contains(normalized_value, na=False)
+                        else:
+                            mask |= df[col].str.contains(normalized_value, na=False)
                     df.loc[mask, "secondary_type"] = new_type
     return df
 
@@ -73,9 +90,12 @@ def main() -> None:
 
     df = read_spreadsheets(DATA)
     df = rename_and_trim(df, column_renames)
+    df = df.drop_duplicates(subset=["latitude", "longitude", "property_name"])
+    df = normalize_text_columns(df, ["property_name", "anchor_tenants"])
     df = fix_secondary_types(df, secondary_type_fixes)
     df = filter_secondary_types(df, settings["secondary_types"])
 
+    df = df.drop(columns=[c for c in df.columns if c.endswith("_norm")])
     gdf = to_spatial(df, settings["epsg"])
     save_by_type(gdf, OUTPUT)
 

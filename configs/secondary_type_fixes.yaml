@@ -1,3 +1,4 @@
-  - anchor_tenants:
-      - Walmart: Supermarket
+  - "anchor_tenants,property_name": # columns to search
+      - Walmart: Supermarket # match value: new secondary_type
       - Target: Supermarket
+      - Costco: Supermarket
